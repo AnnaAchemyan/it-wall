@@ -1,10 +1,11 @@
 import {
   Body,
   Controller,
+  Patch,
   Post,
-  UploadedFile,
-  UseInterceptors,
-} from '@nestjs/common';
+  UploadedFile, UseGuards,
+  UseInterceptors
+} from "@nestjs/common";
 import { diskStorage } from 'multer';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
@@ -14,6 +15,10 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { Helper } from '../infrastructure/config/upload.config';
 import { CodeInterface } from './interface/jwt.interface';
 import { forgotPasswordDto, sendEmailForgotPassword } from "./dto/forgot.password.dto";
+import { JwtAuthGuard } from "./jwt-auth.guard";
+import { CurrentUser } from "./current-user.decorator";
+import { User } from "../domain/user.entity";
+import { RestorePasswordDto } from "./dto/restore.password.dto";
 
 @Controller('auth')
 export class AuthController {
@@ -59,5 +64,14 @@ export class AuthController {
   @Post('forgotPassword')
   async forgotPassword(@Body() payload: forgotPasswordDto) {
     return this.authService.forgotPassword(payload);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('restorePassword')
+  async restorePassword(
+    @CurrentUser() currentUser: User,
+    @Body() payload: RestorePasswordDto,
+  ) {
+    return this.authService.restorePassword(currentUser, payload);
   }
 }

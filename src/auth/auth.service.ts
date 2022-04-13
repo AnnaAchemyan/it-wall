@@ -15,12 +15,13 @@ import { Company } from '../domain/company.entity';
 import { Customer } from '../domain/customer.entity';
 import { Certificate } from '../domain/certificate.entity';
 import { LoginDto } from './dto/login.dto';
-import { CodeInterface } from './interface/jwt.interface';
+import { CodeInterface, JwtInterface } from './interface/jwt.interface';
 import { UserService } from '../user/user.service';
 import {
   forgotPasswordDto,
   sendEmailForgotPassword,
 } from './dto/forgot.password.dto';
+import { RestorePasswordDto } from './dto/restore.password.dto';
 
 @Injectable()
 export class AuthService {
@@ -51,9 +52,13 @@ export class AuthService {
       throw new HttpException('User with that email already exists', 400);
     }
     try {
-      payload.password = bcrypt.hash(payload.password, 10);
-      const token = this.jwtService.sign(payload.email);
+      payload.password = bcrypt.hashSync(payload.password, 10);
+      const tokenEmail: JwtInterface = {
+        email: payload.email,
+      };
+      const token = this.jwtService.sign(tokenEmail);
       const user = await this.userRepo.save(payload);
+
       if (payload.role == 'freelancer') {
         await this.freelancerRepo.save({ user: user });
       }
@@ -92,8 +97,11 @@ export class AuthService {
     }
 
     try {
-      payload.password = bcrypt.hash(payload.password, 10);
-      const token = this.jwtService.sign(payload.email);
+      payload.password = bcrypt.hashSync(payload.password, 10);
+      const tokenEmail: JwtInterface = {
+        email: payload.email,
+      };
+      const token = this.jwtService.sign(tokenEmail);
       const toBool = (string) => string === 'true';
       payload.remember = toBool(payload.remember);
 
@@ -137,22 +145,45 @@ export class AuthService {
     if (!user) {
       throw new HttpException('Invalid email or password', 401);
     }
-    const isMatch = await bcrypt.compare(payload.password, user.password);
-    if (isMatch) {
-      const token = this.jwtService.sign(payload.email);
-
-      if (user.remember !== payload.remember) {
-        user.remember = payload.remember;
-        await this.userRepo.save(user);
+    try {
+      if (user && user.isActive == false) {
+        const tokenEmail: JwtInterface = {
+          email: payload.email,
+        };
+        const token = this.jwtService.sign(tokenEmail);
+        await this.mailerService.sendMail({
+          to: payload.email,
+          from: 'admin',
+          subject: `Message from ItWall( Activation Account ) ✔`,
+          html: `<h2>Your email is't active</h2><br><h3>Please click here for activating your account </h3> <h3><a href="http://localhost:3000/activation-account.html/${token}">Activating account</a></h3>`,
+        });
+        return {
+          message: 'Please check your email to activate your account.',
+        };
       }
-      return {
-        message: 'Success',
-        data: {
-          token: token,
-        },
-      };
-    } else {
-      throw new HttpException('Invalid email or password', 401);
+      if (user && user.isActive == true) {
+        const isMatch = await bcrypt.compare(payload.password, user.password);
+        if (isMatch) {
+          const tokenEmail: JwtInterface = {
+            email: payload.email,
+          };
+          const token = this.jwtService.sign(tokenEmail);
+          if (user.remember !== payload.remember) {
+            user.remember = payload.remember;
+            await this.userRepo.save(user);
+          }
+          return {
+            message: 'Success',
+            data: {
+              token: token,
+            },
+          };
+        } else {
+          throw new HttpException('Invalid email or password', 401);
+        }
+      }
+    } catch (e) {
+      return { message: e.message };
     }
   }
 
@@ -192,8 +223,11 @@ export class AuthService {
       throw new HttpException('Invalid email', HttpStatus.BAD_REQUEST);
     }
     try {
-      const token = this.jwtService.sign({ email: payload.email });
-
+      // const token = this.jwtService.sign({ email: payload.email });
+      const tokenEmail: JwtInterface = {
+        email: payload.email,
+      };
+      const token = this.jwtService.sign(tokenEmail);
       await this.mailerService.sendMail({
         to: payload.email,
         from: 'admin',
@@ -202,7 +236,6 @@ export class AuthService {
       });
       return {
         message: 'Please check your email to restore your password.',
-        token: token,
       };
     } catch (e) {
       return { message: e.message };
@@ -210,36 +243,66 @@ export class AuthService {
   }
 
   async forgotPassword(payload: forgotPasswordDto) {
-    // const decoded = jwt.decode(payload.data) as JwtInterface;
     try {
-      const decoded = this.jwtService.decode(payload.token);
-      const userEmail = decoded.toString();
+      const decoded = this.jwtService.decode(payload.token) as JwtInterface;
       const user = await this.userRepo.findOne({
         where: {
-          email: userEmail,
+          email: decoded.email,
         },
       });
-      if (payload.newPassword === payload.confirmPassword) {
-        user.password = await bcrypt.hash(payload.newPassword, 10);
-        await this.userRepo.save(user);
-        return {
-          message: 'Password successfully changed.',
-        };
-      } else
-        throw new HttpException(
-          'New password and confirm password do not match.',
-          403,
-        );
+      if (!user) {
+        throw new HttpException('Invalid email', HttpStatus.BAD_REQUEST);
+      } else {
+        if (payload.newPassword === payload.confirmPassword) {
+          user.password = await bcrypt.hashSync(payload.newPassword, 10);
+          if (user.isActive == false) {
+            user.isActive = true;
+          }
+          await this.userRepo.save(user);
+          return {
+            message: 'Your password has changed successfully.',
+          };
+        } else {
+          throw new HttpException(
+            'New password and confirm password do not match.',
+            403,
+          );
+        }
+      }
     } catch (e) {
       return { message: e.message };
     }
   }
 
-  async validateUser(email): Promise<LoginDto> {
-    const user = await this.userService.findByPayload(email);
+  async restorePassword(currentUser: User, payload: RestorePasswordDto) {
+    const user = await this.userRepo.findOne({
+      where: {
+        email: currentUser.email,
+      },
+    });
     if (!user) {
-      throw new HttpException('Invalid token', HttpStatus.UNAUTHORIZED);
+      throw new HttpException('Invalid email', HttpStatus.BAD_REQUEST);
+    } else {
+      const isMatch = await bcrypt.compare(payload.oldPassword, user.password);
+      if (isMatch) {
+        if (payload.newPassword === payload.confirmPassword) {
+          payload.newPassword = bcrypt.hashSync(payload.newPassword, 10);
+          user.password = payload.newPassword;
+          const update = await this.userRepo.save(user);
+          if (update) {
+            return {
+              message: 'Your password has changed successfully.',
+            };
+          }
+        } else {
+          throw new HttpException(
+            'New password and confirm password do not match.',
+            403,
+          );
+        }
+      } else {
+        throw new HttpException('Old password is incorrect.', 403);
+      }
     }
-    return user;
   }
 }
