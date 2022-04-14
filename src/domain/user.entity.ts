@@ -20,7 +20,7 @@ export class User {
   @Column({ type: 'varchar', length: '30' })
   lastName: string;
 
-  @Column({ nullable: true })
+  @Column()
   phoneNumber: string;
 
   @IsString()

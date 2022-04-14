@@ -223,7 +223,6 @@ export class AuthService {
       throw new HttpException('Invalid email', HttpStatus.BAD_REQUEST);
     }
     try {
-      // const token = this.jwtService.sign({ email: payload.email });
       const tokenEmail: JwtInterface = {
         email: payload.email,
       };
@@ -275,6 +274,7 @@ export class AuthService {
   }
 
   async restorePassword(currentUser: User, payload: RestorePasswordDto) {
+    console.log(currentUser);
     const user = await this.userRepo.findOne({
       where: {
         email: currentUser.email,
@@ -304,5 +304,15 @@ export class AuthService {
         throw new HttpException('Old password is incorrect.', 403);
       }
     }
+  }
+
+  googleLogin(req) {
+    if (!req.user) {
+      return 'No user from google';
+    }
+    return {
+      message: 'User Info from Google',
+      user: req.user,
+    };
   }
 }

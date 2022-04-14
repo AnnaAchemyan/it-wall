@@ -6,9 +6,11 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class sendEmailForgotPassword {
   @IsEmail()
+  @ApiProperty({ type: String, description: 'Email' })
   email: string;
 }
 
@@ -19,14 +21,27 @@ export class forgotPasswordDto {
     message:
       'Password should contain minimum eight characters, at least one letter and one number',
   })
+  @ApiProperty({
+    type: String,
+    description:
+      'Password has to match a regular expression:  /^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{8,}$/',
+    example: 'Mary123456',
+  })
   newPassword: string;
 
   @IsString()
   @IsNotEmpty()
   @MinLength(8)
+  @ApiProperty({
+    type: String,
+    description:
+      'Password has to match a regular expression:  /^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{8,}$/',
+    example: 'Mary123456',
+  })
   confirmPassword: string;
 
   @IsString()
   @IsNotEmpty()
+  @ApiProperty({ type: String, description: 'Token' })
   token: string;
 }

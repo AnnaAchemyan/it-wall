@@ -8,6 +8,8 @@ export class Helper {
       fileExtension = 'jpg';
     } else if (file.mimetype.indexOf('png') > -1) {
       fileExtension = 'png';
+    } else if (file.mimetype.indexOf('pdf') > -1) {
+      fileExtension = 'pdf';
     }
     const originalName = file.originalname.split('.')[0];
     cb(null, originalName + '-' + uniqueSuffix + '.' + fileExtension);
@@ -15,11 +17,10 @@ export class Helper {
 
   static destinationPath(req, file, cb) {
     cb(null, 'src/upload/');
-    // cb(null, 'assets');
   }
 
   static fileFilter(req, file, cb) {
-    if (file.mimetype.match(/\/(jpg|jpeg|png)$/)) {
+    if (file.mimetype.match(/\/(jpg|jpeg|png|pdf)$/)) {
       cb(null, true);
     } else {
       cb(
