@@ -3,7 +3,6 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   ManyToOne,
-  OneToMany,
 } from 'typeorm';
 import { Company } from './company.entity';
 

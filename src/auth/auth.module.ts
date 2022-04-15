@@ -9,15 +9,13 @@ import { Freelancer } from '../domain/freelancer.entity';
 import { Customer } from '../domain/customer.entity';
 import { Company } from '../domain/company.entity';
 import { Certificate } from '../domain/certificate.entity';
-import { MailerModule } from '@nestjs-modules/mailer';
 import { JwtStrategy } from './jwt.strategy';
-import { UserModule } from '../user/user.module';
 import { GoogleStrategy } from './google.strategy';
+import { FacebookStrategy } from './facebook.strategy';
 dotenv.config();
 
 @Module({
   imports: [
-    UserModule,
     TypeOrmModule.forFeature([
       User,
       Freelancer,
@@ -31,21 +29,9 @@ dotenv.config();
         algorithm: 'HS256',
       },
     }),
-    MailerModule.forRoot({
-      transport: {
-        host: 'localhost',
-        port: 465,
-        secure: true,
-        service: 'Gmail',
-        auth: {
-          user: 'msimonyan43@gmail.com',
-          pass: 'mary123456@',
-        },
-      },
-    }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, GoogleStrategy],
+  providers: [AuthService, JwtStrategy, GoogleStrategy, FacebookStrategy],
   exports: [AuthService, JwtModule],
 })
 export class AuthModule {}

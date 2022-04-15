@@ -4,7 +4,6 @@ import {
   JoinColumn,
   OneToOne,
   PrimaryGeneratedColumn,
-  ManyToOne,
   OneToMany,
 } from 'typeorm';
 import { IsString } from 'class-validator';

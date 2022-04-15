@@ -7,7 +7,6 @@ import {
 import * as bcrypt from 'bcrypt';
 import { RegisterDto } from './dto/register.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { MailerService } from '@nestjs-modules/mailer';
 import { User } from '../domain/user.entity';
 import { Freelancer } from '../domain/freelancer.entity';
 import { CompanyRegisterDto } from './dto/company.register.dto';
@@ -16,7 +15,6 @@ import { Customer } from '../domain/customer.entity';
 import { Certificate } from '../domain/certificate.entity';
 import { LoginDto } from './dto/login.dto';
 import { CodeInterface, JwtInterface } from './interface/jwt.interface';
-import { UserService } from '../user/user.service';
 import {
   forgotPasswordDto,
   sendEmailForgotPassword,
@@ -38,8 +36,6 @@ export class AuthService {
     @InjectRepository(Company)
     private readonly companyRepo: BaseRepository<Company>,
     private readonly jwtService: JwtService,
-    private readonly mailerService: MailerService,
-    private userService: UserService,
   ) {}
   @Transactional()
   async userRegister(payload: RegisterDto | CompanyRegisterDto) {
@@ -81,7 +77,7 @@ export class AuthService {
     }
   }
   @Transactional()
-  async companyRegister(payload: CompanyRegisterDto, certificate) {
+  async companyRegister(payload: CompanyRegisterDto, certificates) {
     const isExists = await this.userRepo.findOne({
       where: {
         email: payload.email,
@@ -109,10 +105,14 @@ export class AuthService {
           companyName: payload.companyName,
           taxNumber: payload.taxNumber,
         });
-        await this.certificateRepo.save({
-          image: certificate.path,
-          company: company,
-        });
+        if (certificates) {
+          certificates.map(async (certificate) => {
+            await this.certificateRepo.save({
+              image: certificate.path,
+              company: company,
+            });
+          });
+        }
       }
 
       await sendMailUser(payload.email, token);
@@ -241,7 +241,7 @@ export class AuthService {
       } else {
         if (payload.newPassword === payload.confirmPassword) {
           user.password = await bcrypt.hashSync(payload.newPassword, 10);
-          if (user.isActive == false) {
+          if (!user.isActive) {
             user.isActive = true;
           }
           await this.userRepo.save(user);

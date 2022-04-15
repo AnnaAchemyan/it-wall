@@ -2,10 +2,11 @@ import {
   Body,
   Controller,
   Get,
+  HttpStatus,
   Patch,
   Post,
   Req,
-  UploadedFile,
+  UploadedFiles,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
@@ -14,7 +15,7 @@ import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { CompanyRegisterDto } from './dto/company.register.dto';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { Helper } from '../infrastructure/config/upload.config';
 import { CodeInterface } from './interface/jwt.interface';
 import {
@@ -37,6 +38,7 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { ApiImplicitFile } from '@nestjs/swagger/dist/decorators/api-implicit-file.decorator';
+import { Request } from 'express';
 
 @Controller('auth')
 @ApiTags('auth')
@@ -60,7 +62,7 @@ export class AuthController {
   })
   @ApiBadRequestResponse({ description: 'User with that email already exists' })
   @UseInterceptors(
-    FileInterceptor('certificate', {
+    FilesInterceptor('certificates', 10, {
       storage: diskStorage({
         destination: Helper.destinationPath,
         filename: Helper.customFileName,
@@ -69,12 +71,12 @@ export class AuthController {
     }),
   )
   @ApiConsumes('multipart/form-data')
-  @ApiImplicitFile({ name: 'certificate', required: true })
+  @ApiImplicitFile({ name: 'certificates' })
   async companyRegister(
     @Body() payload: CompanyRegisterDto,
-    @UploadedFile() certificate,
+    @UploadedFiles() certificates: Array<Express.Multer.File>,
   ) {
-    return this.authService.companyRegister(payload, certificate);
+    return this.authService.companyRegister(payload, certificates);
   }
 
   @Post('login')
@@ -130,11 +132,28 @@ export class AuthController {
 
   @Get('google')
   @UseGuards(AuthGuard('google'))
-  async googleAuth(@Req() req) {}
+  async googleAuth(@Req() req) {
+    return HttpStatus.OK;
+  }
 
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   googleAuthRedirect(@Req() req) {
     return this.authService.googleLogin(req);
+  }
+
+  @Get('/facebook')
+  @UseGuards(AuthGuard('facebook'))
+  async facebookLogin(): Promise<any> {
+    return HttpStatus.OK;
+  }
+
+  @Get('/facebook/redirect')
+  @UseGuards(AuthGuard('facebook'))
+  async facebookLoginRedirect(@Req() req: Request): Promise<any> {
+    return {
+      statusCode: HttpStatus.OK,
+      data: req.user,
+    };
   }
 }

@@ -3,11 +3,11 @@ import { google } from 'googleapis';
 const OAuth2 = google.auth.OAuth2;
 
 const OAuth2_client = new OAuth2(
-  process.env.CLIENT_ID,
-  process.env.CLIENT_SECRET,
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
 );
 OAuth2_client.setCredentials({
-  refresh_token: process.env.REFRESH_TOKEN,
+  refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
 });
 
 export function sendMailUser(recipient, token) {
@@ -16,10 +16,10 @@ export function sendMailUser(recipient, token) {
     service: 'gmail',
     auth: {
       type: 'OAuth2',
-      user: process.env.USER_EMAIL,
-      clientId: process.env.CLIENT_ID,
-      clientSecret: process.env.CLIENT_SECRET,
-      refreshToken: process.env.REFRESH_TOKEN,
+      user: process.env.GOOGLE_USER_EMAIL,
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      refreshToken: process.env.GOOGLE_REFRESH_TOKEN,
       accessToken: accessToken,
     },
   });
