@@ -22,6 +22,7 @@ import {
   sendEmailForgotPassword,
 } from './dto/forgot.password.dto';
 import { RestorePasswordDto } from './dto/restore.password.dto';
+import { sendMailUser } from '../sendMail/send.mail';
 
 @Injectable()
 export class AuthService {
@@ -66,12 +67,7 @@ export class AuthService {
         await this.customerRepo.save({ user: user });
       }
 
-      await this.mailerService.sendMail({
-        to: payload.email,
-        from: 'admin',
-        subject: `Message from ItWall( Activation Account ) ✔`,
-        html: `<h2>Your email is't active</h2><br><h3>Please click here for activating your account </h3> <h3><a href="http://localhost:3000/activation-account.html/${token}">Activating account</a></h3>`,
-      });
+      await sendMailUser(payload.email, token);
 
       return {
         message:
@@ -119,12 +115,7 @@ export class AuthService {
         });
       }
 
-      await this.mailerService.sendMail({
-        to: payload.email,
-        from: 'admin',
-        subject: `Message from ItWall( Activation Account ) ✔`,
-        html: `<h2>Your email is't active</h2><br><h3>Please click here for activating your account </h3> <h3><a href="http://localhost:3000/activation-account.html/${token}">Activating account</a></h3>`,
-      });
+      await sendMailUser(payload.email, token);
 
       return {
         message:
@@ -146,22 +137,17 @@ export class AuthService {
       throw new HttpException('Invalid email or password', 401);
     }
     try {
-      if (user && user.isActive == false) {
+      if (user && !user.isActive) {
         const tokenEmail: JwtInterface = {
           email: payload.email,
         };
         const token = this.jwtService.sign(tokenEmail);
-        await this.mailerService.sendMail({
-          to: payload.email,
-          from: 'admin',
-          subject: `Message from ItWall( Activation Account ) ✔`,
-          html: `<h2>Your email is't active</h2><br><h3>Please click here for activating your account </h3> <h3><a href="http://localhost:3000/activation-account.html/${token}">Activating account</a></h3>`,
-        });
+        await sendMailUser(payload.email, token);
         return {
           message: 'Please check your email to activate your account.',
         };
       }
-      if (user && user.isActive == true) {
+      if (user && user.isActive) {
         const isMatch = await bcrypt.compare(payload.password, user.password);
         if (isMatch) {
           const tokenEmail: JwtInterface = {
@@ -189,15 +175,20 @@ export class AuthService {
 
   async confirmEmail(data: CodeInterface) {
     try {
-      const decoded = this.jwtService.decode(data.token);
-      const userEmail = decoded.toString();
+      const decoded = this.jwtService.decode(data.token) as JwtInterface;
+      if (!decoded) {
+        throw new HttpException('Invalid token', 403);
+      }
       const user = await this.userRepo.findOne({
         where: {
-          email: userEmail,
+          email: decoded.email,
         },
       });
 
-      if (user && user.isActive == false) {
+      if (!user) {
+        throw new HttpException('User not found', 404);
+      }
+      if (user.isActive == false) {
         user.isActive = true;
         await this.userRepo.save(user);
         return {
@@ -227,12 +218,8 @@ export class AuthService {
         email: payload.email,
       };
       const token = this.jwtService.sign(tokenEmail);
-      await this.mailerService.sendMail({
-        to: payload.email,
-        from: 'admin',
-        subject: `Message from ItWall( Forgot Password ) ✔`,
-        html: `<h2>Forgot your password ❓❗</h2><br><h3>Don't worry, you can restore it by clicking on this link </h3> <h3><a href="http://localhost:3000/forgot-password.html/${token}">Restore password</a></h3>`,
-      });
+
+      await sendMailUser(payload.email, token);
       return {
         message: 'Please check your email to restore your password.',
       };
@@ -274,7 +261,6 @@ export class AuthService {
   }
 
   async restorePassword(currentUser: User, payload: RestorePasswordDto) {
-    console.log(currentUser);
     const user = await this.userRepo.findOne({
       where: {
         email: currentUser.email,

@@ -31,10 +31,11 @@ import {
   ApiBody,
   ApiConsumes,
   ApiCreatedResponse,
-  ApiForbiddenResponse, ApiOkResponse,
+  ApiForbiddenResponse,
+  ApiOkResponse,
   ApiTags,
-  ApiUnauthorizedResponse
-} from "@nestjs/swagger";
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
 import { ApiImplicitFile } from '@nestjs/swagger/dist/decorators/api-implicit-file.decorator';
 
 @Controller('auth')
