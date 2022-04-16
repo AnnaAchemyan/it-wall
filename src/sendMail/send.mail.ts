@@ -27,7 +27,7 @@ export function sendMailUser(recipient, token) {
     from: 'itwall.io@gmail.com',
     to: recipient,
     subject: `Message from ItWall( Activation Account ) `,
-    html: `<h2>Your email is't active</h2><br><h3>Please click here for activating your account </h3> <h3><a href="http://localhost:3000/activation-account.html/${token}">Activating account</a></h3>`,
+    html: `<h2>Your email isn't active</h2><br><h3>Please click here for activating your account </h3> <h3><a href="http://localhost:3000/activation-account.html/${token}">Activating account</a></h3>`,
   };
   transport.sendMail(mailOPtions, function (error) {
     if (error) {
