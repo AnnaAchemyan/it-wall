@@ -38,7 +38,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
   @Transactional()
-  async userRegister(payload: RegisterDto | CompanyRegisterDto) {
+  async userRegister(payload: RegisterDto) {
     const isExists = await this.userRepo.findOne({
       where: {
         email: payload.email,
@@ -73,7 +73,7 @@ export class AuthService {
         },
       };
     } catch (e) {
-      return { message: e.message };
+      throw new HttpException(e.message, 400);
     }
   }
   @Transactional()
@@ -98,7 +98,6 @@ export class AuthService {
       payload.remember = toBool(payload.remember);
 
       const user = await this.userRepo.save(payload);
-
       if (payload.role == 'company') {
         const company = await this.companyRepo.save({
           user: user,
@@ -125,7 +124,7 @@ export class AuthService {
         },
       };
     } catch (e) {
-      return { message: e.message };
+      throw new HttpException(e.message, 400);
     }
   }
 
@@ -169,7 +168,7 @@ export class AuthService {
         }
       }
     } catch (e) {
-      return { message: e.message };
+      throw new HttpException(e.message, 400);
     }
   }
 
@@ -200,7 +199,7 @@ export class AuthService {
         };
       }
     } catch (e) {
-      return { message: e.message };
+      throw new HttpException(e.message, 400);
     }
   }
 
@@ -224,7 +223,7 @@ export class AuthService {
         message: 'Please check your email to restore your password.',
       };
     } catch (e) {
-      return { message: e.message };
+      throw new HttpException(e.message, 400);
     }
   }
 
@@ -256,39 +255,46 @@ export class AuthService {
         }
       }
     } catch (e) {
-      return { message: e.message };
+      throw new HttpException(e.message, 400);
     }
   }
 
   async restorePassword(currentUser: User, payload: RestorePasswordDto) {
-    const user = await this.userRepo.findOne({
-      where: {
-        email: currentUser.email,
-      },
-    });
-    if (!user) {
-      throw new HttpException('Invalid email', HttpStatus.BAD_REQUEST);
-    } else {
-      const isMatch = await bcrypt.compare(payload.oldPassword, user.password);
-      if (isMatch) {
-        if (payload.newPassword === payload.confirmPassword) {
-          payload.newPassword = bcrypt.hashSync(payload.newPassword, 10);
-          user.password = payload.newPassword;
-          const update = await this.userRepo.save(user);
-          if (update) {
-            return {
-              message: 'Your password has changed successfully.',
-            };
+    try {
+      const user = await this.userRepo.findOne({
+        where: {
+          email: currentUser.email,
+        },
+      });
+      if (!user) {
+        throw new HttpException('Invalid email', HttpStatus.BAD_REQUEST);
+      } else {
+        const isMatch = await bcrypt.compare(
+          payload.oldPassword,
+          user.password,
+        );
+        if (isMatch) {
+          if (payload.newPassword === payload.confirmPassword) {
+            payload.newPassword = bcrypt.hashSync(payload.newPassword, 10);
+            user.password = payload.newPassword;
+            const update = await this.userRepo.save(user);
+            if (update) {
+              return {
+                message: 'Your password has changed successfully.',
+              };
+            }
+          } else {
+            throw new HttpException(
+              'New password and confirm password do not match.',
+              403,
+            );
           }
         } else {
-          throw new HttpException(
-            'New password and confirm password do not match.',
-            403,
-          );
+          throw new HttpException('Old password is incorrect.', 403);
         }
-      } else {
-        throw new HttpException('Old password is incorrect.', 403);
       }
+    } catch (e) {
+      throw new HttpException(e.message, 400);
     }
   }
 
