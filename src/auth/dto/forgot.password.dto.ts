@@ -5,11 +5,14 @@ import {
   Matches,
   MaxLength,
   MinLength,
+  Validate,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { Empty } from '../../validation/spase.validator';
 
 export class sendEmailForgotPassword {
   @IsEmail()
+  @Validate(Empty, { message: 'Field is empty' })
   @ApiProperty({ type: String, description: 'Email' })
   email: string;
 }

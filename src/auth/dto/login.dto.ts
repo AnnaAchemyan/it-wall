@@ -1,10 +1,12 @@
-import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, Validate } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { Empty } from '../../validation/spase.validator';
 
 export class LoginDto {
   @IsNotEmpty()
   @IsString()
   @IsEmail()
+  @Validate(Empty, { message: 'Field is empty' })
   @ApiProperty({ type: String, description: 'Email' })
   email: string;
 

@@ -1,24 +1,24 @@
 import {
-  IsBoolean,
   IsEmail,
   IsNotEmpty,
-  IsNumber,
   IsString,
   Matches,
   MaxLength,
-  MinLength,
+  Validate,
 } from 'class-validator';
-import { Column } from 'typeorm';
 import { Role } from '../../domain/user.entity';
 import { ApiProperty } from '@nestjs/swagger';
+import { Empty } from '../../validation/spase.validator';
 export class RegisterDto {
   @IsNotEmpty()
   @IsString()
+  @Validate(Empty, { message: 'Field is empty' })
   @ApiProperty({ type: String, description: 'Firstname' })
   firstName: string;
 
   @IsNotEmpty()
   @IsString()
+  @Validate(Empty, { message: 'Field is empty' })
   @ApiProperty({ type: String, description: 'Lastname' })
   lastName: string;
 
@@ -37,6 +37,7 @@ export class RegisterDto {
   @IsNotEmpty()
   @IsString()
   @IsEmail()
+  @Validate(Empty, { message: 'Field is empty' })
   @ApiProperty({ type: String, description: 'Email' })
   email: string;
 
